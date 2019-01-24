@@ -3,6 +3,10 @@ name = "toolchain_find"
 version = "0.1.0"
 authors = ["Garrett Squire <garrettsquire@gmail.com>"]
 edition = "2018"
+license = "MIT"
+repository = "https://github.com/gsquire/toolchain_find"
+documentation = "https://docs.rs/toolchain_find"
+readme = "README.md"
 
 [dependencies]
 dirs = "1.0"
