@@ -1,0 +1,10 @@
+[package]
+name = "toolchain_find"
+version = "0.1.0"
+authors = ["Garrett Squire <garrettsquire@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+dirs = "1.0"
+semver = "0.9"
+walkdir = "2.2"
