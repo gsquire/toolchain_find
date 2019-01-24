@@ -6,6 +6,7 @@ edition = "2018"
 license = "MIT"
 repository = "https://github.com/gsquire/toolchain_find"
 documentation = "https://docs.rs/toolchain_find"
+description = "A small library to help find installed Rust components"
 readme = "README.md"
 
 [dependencies]
