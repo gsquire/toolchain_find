@@ -73,8 +73,7 @@ fn rustc_version(bin_path: &Path) -> DateVersion {
                 let vers = Version::parse(parts[1]).unwrap_or(version_zero);
                 let mut date = parts[3].trim_end();
                 date = date.trim_end_matches(')');
-                let parsed_date = String::from(date);
-                return DateVersion::new(vers, parsed_date);
+                return DateVersion::new(vers, String::from(date));
             }
             DateVersion::new(version_zero, date_zero)
         }
