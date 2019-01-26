@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -7,13 +8,37 @@ use walkdir::WalkDir;
 // A `Component` keeps track of the rustc version associated with the component in question.
 #[derive(Debug)]
 struct Component {
-    rustc_vers: Version,
+    date_vers: DateVersion,
     path: PathBuf,
 }
 
+// A `DateVersion` allows you to sort first by the semantic version and date second if the versions
+// are equal.
+#[derive(Debug, Eq, PartialEq, PartialOrd)]
+struct DateVersion {
+    rustc_vers: Version,
+    date: String,
+}
+
+impl Ord for DateVersion {
+    fn cmp(&self, other: &DateVersion) -> Ordering {
+        let vers_cmp = self.rustc_vers.cmp(&other.rustc_vers);
+        if vers_cmp == Ordering::Equal {
+            return self.date.cmp(&other.date);
+        }
+        vers_cmp
+    }
+}
+
+impl DateVersion {
+    fn new(rustc_vers: Version, date: String) -> DateVersion {
+        DateVersion { rustc_vers, date }
+    }
+}
+
 impl Component {
-    fn new(rustc_vers: Version, path: PathBuf) -> Component {
-        Component { rustc_vers, path }
+    fn new(date_vers: DateVersion, path: PathBuf) -> Component {
+        Component { date_vers, path }
     }
 }
 
@@ -33,8 +58,9 @@ fn rustup_home() -> Option<PathBuf> {
 }
 
 // Try and parse the version from the Rust compiler. If we can not do this, just make it version 0.
-fn rustc_version(bin_path: &Path) -> Version {
+fn rustc_version(bin_path: &Path) -> DateVersion {
     let version_zero = Version::new(0, 0, 0);
+    let date_zero = String::default();
 
     match Command::new(bin_path).arg("-V").output() {
         Ok(o) => {
@@ -43,12 +69,15 @@ fn rustc_version(bin_path: &Path) -> Version {
             // rustc 1.32.0 (9fda7c223 2019-01-16)
             let output = String::from_utf8(o.stdout).unwrap_or_default();
             let parts = output.split(' ').collect::<Vec<&str>>();
-            if parts.len() > 2 {
-                return Version::parse(parts[1]).unwrap_or(version_zero);
+            if parts.len() > 3 {
+                let vers = Version::parse(parts[1]).unwrap_or(version_zero);
+                let mut date = parts[3].trim_end();
+                date = date.trim_end_matches(')');
+                return DateVersion::new(vers, String::from(date));
             }
-            version_zero
+            DateVersion::new(version_zero, date_zero)
         }
-        Err(_) => version_zero,
+        Err(_) => DateVersion::new(version_zero, date_zero),
     }
 }
 
@@ -84,7 +113,7 @@ pub fn find_installed_component(name: &str) -> Option<PathBuf> {
     }
 
     // Sort by the rustc version leaving the maximal one at the end.
-    components.sort_by(|a, b| a.rustc_vers.cmp(&b.rustc_vers));
+    components.sort_by(|a, b| a.date_vers.cmp(&b.date_vers));
 
     if let Some(c) = components.pop() {
         return Some(c.path);
