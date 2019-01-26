@@ -2,7 +2,6 @@ use std::cmp::Ordering;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use chrono::NaiveDate;
 use semver::Version;
 use walkdir::WalkDir;
 
@@ -18,7 +17,7 @@ struct Component {
 #[derive(Debug, Eq, PartialEq, PartialOrd)]
 struct DateVersion {
     rustc_vers: Version,
-    date: NaiveDate,
+    date: String,
 }
 
 impl Ord for DateVersion {
@@ -32,7 +31,7 @@ impl Ord for DateVersion {
 }
 
 impl DateVersion {
-    fn new(rustc_vers: Version, date: NaiveDate) -> DateVersion {
+    fn new(rustc_vers: Version, date: String) -> DateVersion {
         DateVersion { rustc_vers, date }
     }
 }
@@ -61,7 +60,7 @@ fn rustup_home() -> Option<PathBuf> {
 // Try and parse the version from the Rust compiler. If we can not do this, just make it version 0.
 fn rustc_version(bin_path: &Path) -> DateVersion {
     let version_zero = Version::new(0, 0, 0);
-    let date_zero = NaiveDate::from_ymd(2000, 1, 1);
+    let date_zero = String::default();
 
     match Command::new(bin_path).arg("-V").output() {
         Ok(o) => {
@@ -74,7 +73,7 @@ fn rustc_version(bin_path: &Path) -> DateVersion {
                 let vers = Version::parse(parts[1]).unwrap_or(version_zero);
                 let mut date = parts[3].trim_end();
                 date = date.trim_end_matches(')');
-                let parsed_date = NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap_or(date_zero);
+                let parsed_date = String::from(date);
                 return DateVersion::new(vers, parsed_date);
             }
             DateVersion::new(version_zero, date_zero)
