@@ -3,6 +3,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::str;
 
+use lazy_static::lazy_static;
+use regex::Regex;
 use semver::Version;
 use walkdir::WalkDir;
 
@@ -59,20 +61,22 @@ fn rustup_home() -> Option<PathBuf> {
 }
 
 // Given the version string from rustc, attempt to parse the date.
-fn parse_rustc_date(version: &[u8]) -> Option<DateVersion> {
+fn parse_rustc_date(rustc_v: &[u8]) -> Option<DateVersion> {
     // This may not be the most ideal way to get the version.
     // It assumes that the output looks like:
     // rustc 1.32.0 (9fda7c223 2019-01-16)
-    let output = str::from_utf8(version).unwrap_or_default();
-    let parts = output.split(' ').collect::<Vec<&str>>();
-    if parts.len() > 3 {
-        let vers = Version::parse(parts[1]).ok();
-        let mut date = parts[3].trim_end();
-        date = date.trim_end_matches(')');
-        return Some(DateVersion::new(vers, String::from(date)));
+    lazy_static! {
+        static ref PATTERN: Regex =
+            Regex::new(r"rustc (\d+.\d+.\d+(?:-\w+)?) \([[:alnum:]]+ (\d{4}-\d{2}-\d{2})\)")
+                .unwrap();
     }
 
-    None
+    let version = str::from_utf8(rustc_v).unwrap_or_default();
+    let captures = PATTERN.captures(version)?;
+    let vers = Version::parse(captures.get(1).map_or("", |v| v.as_str())).ok();
+    let date = String::from(captures.get(2).map_or("", |v| v.as_str()));
+
+    Some(DateVersion::new(vers, date))
 }
 
 // Try and parse the version from the Rust compiler. If we can not do this, just make it version 0.
