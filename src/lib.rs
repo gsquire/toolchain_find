@@ -1,6 +1,7 @@
 use std::cmp::Ordering;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::str;
 
 use semver::Version;
 use walkdir::WalkDir;
@@ -16,7 +17,7 @@ struct Component {
 // are equal.
 #[derive(Debug, Eq, PartialEq, PartialOrd)]
 struct DateVersion {
-    rustc_vers: Version,
+    rustc_vers: Option<Version>,
     date: String,
 }
 
@@ -31,7 +32,7 @@ impl Ord for DateVersion {
 }
 
 impl DateVersion {
-    fn new(rustc_vers: Version, date: String) -> DateVersion {
+    fn new(rustc_vers: Option<Version>, date: String) -> DateVersion {
         DateVersion { rustc_vers, date }
     }
 }
@@ -57,27 +58,31 @@ fn rustup_home() -> Option<PathBuf> {
     Some(p)
 }
 
-// Try and parse the version from the Rust compiler. If we can not do this, just make it version 0.
-fn rustc_version(bin_path: &Path) -> DateVersion {
-    let version_zero = Version::new(0, 0, 0);
-    let date_zero = String::default();
+// Given the version string from rustc, attempt to parse the date.
+fn parse_rustc_date(version: &[u8]) -> Option<DateVersion> {
+    // This may not be the most ideal way to get the version.
+    // It assumes that the output looks like:
+    // rustc 1.32.0 (9fda7c223 2019-01-16)
+    let output = str::from_utf8(version).unwrap_or_default();
+    let parts = output.split(' ').collect::<Vec<&str>>();
+    if parts.len() > 3 {
+        let vers = match Version::parse(parts[1]) {
+            Ok(v) => Some(v),
+            Err(_) => None,
+        };
+        let mut date = parts[3].trim_end();
+        date = date.trim_end_matches(')');
+        return Some(DateVersion::new(vers, String::from(date)));
+    }
 
+    None
+}
+
+// Try and parse the version from the Rust compiler. If we can not do this, just make it version 0.
+fn rustc_version(bin_path: &Path) -> Option<DateVersion> {
     match Command::new(bin_path).arg("-V").output() {
-        Ok(o) => {
-            // This may not be the most ideal way to get the version.
-            // It assumes that the output looks like:
-            // rustc 1.32.0 (9fda7c223 2019-01-16)
-            let output = String::from_utf8(o.stdout).unwrap_or_default();
-            let parts = output.split(' ').collect::<Vec<&str>>();
-            if parts.len() > 3 {
-                let vers = Version::parse(parts[1]).unwrap_or(version_zero);
-                let mut date = parts[3].trim_end();
-                date = date.trim_end_matches(')');
-                return DateVersion::new(vers, String::from(date));
-            }
-            DateVersion::new(version_zero, date_zero)
-        }
-        Err(_) => DateVersion::new(version_zero, date_zero),
+        Ok(o) => parse_rustc_date(&o.stdout),
+        Err(_) => None,
     }
 }
 
@@ -105,7 +110,7 @@ pub fn find_installed_component(name: &str) -> Option<PathBuf> {
                 let mut rustc_path = PathBuf::from(parent);
                 rustc_path.push("rustc");
                 components.push(Component::new(
-                    rustc_version(&rustc_path),
+                    rustc_version(&rustc_path)?,
                     PathBuf::from(&entry.path()),
                 ));
             }
@@ -120,4 +125,72 @@ pub fn find_installed_component(name: &str) -> Option<PathBuf> {
     }
 
     None
+}
+
+#[cfg(test)]
+mod test {
+    use semver::Version;
+
+    use super::{parse_rustc_date, DateVersion};
+
+    #[test]
+    fn test_parse_rustc_date() {
+        let cases = vec![
+            "".as_bytes(),
+            "rustc not found".as_bytes(),
+            "rustc 1.34.0-nightly (097c04cf4 2019-02-24)".as_bytes(),
+            "rustc 1.32.0 (9fda7c223 2019-01-16)".as_bytes(),
+        ];
+        let expected = vec![
+            None,
+            None,
+            Some(DateVersion::new(
+                Some(Version::parse("1.34.0-nightly").unwrap()),
+                String::from("2019-02-24"),
+            )),
+            Some(DateVersion::new(
+                Some(Version::parse("1.32.0").unwrap()),
+                String::from("2019-01-16"),
+            )),
+        ];
+
+        for (i, case) in cases.iter().enumerate() {
+            assert_eq!(parse_rustc_date(case), expected[i]);
+        }
+    }
+
+    #[test]
+    fn test_version_parse_fail() {
+        let v2 = Version::parse("1.1.0").unwrap();
+        let d1 = DateVersion::new(None, String::from("2019-01-01"));
+        let d2 = DateVersion::new(Some(v2), String::from("2019-01-01"));
+
+        assert!(d2 > d1);
+    }
+
+    #[test]
+    fn test_different_versions() {
+        let v1 = Version::parse("1.2.3").unwrap();
+        let v2 = Version::parse("1.1.0").unwrap();
+        let d1 = DateVersion::new(Some(v1), String::from("2019-01-01"));
+        let d2 = DateVersion::new(Some(v2), String::from("2019-01-01"));
+
+        assert!(d2 < d1);
+    }
+
+    #[test]
+    fn test_many_nightly_strings() {
+        let v = Version::parse("1.0.0-nightly").unwrap();
+        let mut versions = vec![
+            DateVersion::new(Some(v.clone()), String::from("2019-02-20")),
+            DateVersion::new(Some(v.clone()), String::from("2019-02-24")),
+            DateVersion::new(Some(v.clone()), String::from("2019-01-10")),
+        ];
+        versions.sort();
+
+        assert_eq!(
+            versions.pop().unwrap(),
+            DateVersion::new(Some(v.clone()), String::from("2019-02-24"))
+        );
+    }
 }
