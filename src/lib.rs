@@ -66,10 +66,7 @@ fn parse_rustc_date(version: &[u8]) -> Option<DateVersion> {
     let output = str::from_utf8(version).unwrap_or_default();
     let parts = output.split(' ').collect::<Vec<&str>>();
     if parts.len() > 3 {
-        let vers = match Version::parse(parts[1]) {
-            Ok(v) => Some(v),
-            Err(_) => None,
-        };
+        let vers = Version::parse(parts[1]).ok();
         let mut date = parts[3].trim_end();
         date = date.trim_end_matches(')');
         return Some(DateVersion::new(vers, String::from(date)));
