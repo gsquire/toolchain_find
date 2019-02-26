@@ -1,6 +1,6 @@
 [package]
 name = "toolchain_find"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Garrett Squire <garrettsquire@gmail.com>"]
 edition = "2018"
 license = "MIT"
@@ -11,5 +11,7 @@ readme = "README.md"
 
 [dependencies]
 dirs = "1.0"
+lazy_static = "1.2"
+regex = "1.1"
 semver = "0.9"
 walkdir = "2.2"
