@@ -66,9 +66,10 @@ fn parse_rustc_date(rustc_v: &[u8]) -> Option<DateVersion> {
     // It assumes that the output looks like:
     // rustc 1.32.0 (9fda7c223 2019-01-16)
     lazy_static! {
-        static ref PATTERN: Regex =
-            Regex::new(r"rustc (\d+.\d+.\d+(?:-\w+)?) \([[:alnum:]]+ (\d{4}-\d{2}-\d{2})\)")
-                .unwrap();
+        static ref PATTERN: Regex = Regex::new(
+            r"rustc (\d+.\d+.\d+(?:-[\.0-9a-z]+)?) \([[:alnum:]]+ (\d{4}-\d{2}-\d{2})\)"
+        )
+        .unwrap();
     }
 
     let version = str::from_utf8(rustc_v).unwrap_or_default();
@@ -140,6 +141,7 @@ mod test {
             "".as_bytes(),
             "rustc not found".as_bytes(),
             "rustc 1.34.0-nightly (097c04cf4 2019-02-24)".as_bytes(),
+            "rustc 1.34.0-beta.1 (744b374ab 2019-02-26)".as_bytes(),
             "rustc 1.32.0 (9fda7c223 2019-01-16)".as_bytes(),
         ];
         let expected = vec![
@@ -148,6 +150,10 @@ mod test {
             Some(DateVersion::new(
                 Some(Version::parse("1.34.0-nightly").unwrap()),
                 String::from("2019-02-24"),
+            )),
+            Some(DateVersion::new(
+                Some(Version::parse("1.34.0-beta.1").unwrap()),
+                String::from("2019-02-26"),
             )),
             Some(DateVersion::new(
                 Some(Version::parse("1.32.0").unwrap()),
