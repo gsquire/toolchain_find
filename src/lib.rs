@@ -80,7 +80,7 @@ fn parse_rustc_date(rustc_v: &[u8]) -> Option<DateVersion> {
     Some(DateVersion::new(vers, date))
 }
 
-// Try and parse the version from the Rust compiler. If we can not do this, just make it version 0.
+// Try and parse the version from the Rust compiler.
 fn rustc_version(bin_path: &Path) -> Option<DateVersion> {
     match Command::new(bin_path).arg("-V").output() {
         Ok(o) => parse_rustc_date(&o.stdout),
