@@ -142,6 +142,7 @@ mod test {
             "rustc not found".as_bytes(),
             "rustc 1.34.0-nightly (097c04cf4 2019-02-24)".as_bytes(),
             "rustc 1.34.0-beta.1 (744b374ab 2019-02-26)".as_bytes(),
+            "rustc 1.35.0-dev (744b374ab 2019-02-26)".as_bytes(),
             "rustc 1.32.0 (9fda7c223 2019-01-16)".as_bytes(),
         ];
         let expected = vec![
@@ -153,6 +154,10 @@ mod test {
             )),
             Some(DateVersion::new(
                 Some(Version::parse("1.34.0-beta.1").unwrap()),
+                String::from("2019-02-26"),
+            )),
+            Some(DateVersion::new(
+                Some(Version::parse("1.35.0-dev").unwrap()),
                 String::from("2019-02-26"),
             )),
             Some(DateVersion::new(
