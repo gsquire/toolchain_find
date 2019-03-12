@@ -11,7 +11,7 @@ use walkdir::WalkDir;
 // A `Component` keeps track of the rustc version associated with the component in question.
 #[derive(Debug)]
 struct Component {
-    date_vers: DateVersion,
+    date_vers: Option<DateVersion>,
     path: PathBuf,
 }
 
@@ -40,7 +40,7 @@ impl DateVersion {
 }
 
 impl Component {
-    fn new(date_vers: DateVersion, path: PathBuf) -> Component {
+    fn new(date_vers: Option<DateVersion>, path: PathBuf) -> Component {
         Component { date_vers, path }
     }
 }
@@ -112,7 +112,7 @@ pub fn find_installed_component(name: &str) -> Option<PathBuf> {
                 let mut rustc_path = PathBuf::from(parent);
                 rustc_path.push("rustc");
                 components.push(Component::new(
-                    rustc_version(&rustc_path)?,
+                    rustc_version(&rustc_path),
                     PathBuf::from(&entry.path()),
                 ));
             }
