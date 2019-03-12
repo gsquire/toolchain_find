@@ -7,3 +7,10 @@ toolchains managed by rustup.
 
 ## Documentation
 [Link](https://docs.rs/toolchain_find)
+
+## CI
+If you do not have `rustfmt` installed locally, you can just run the unit tests by issuing this command:
+
+```sh
+cargo test --lib
+```
