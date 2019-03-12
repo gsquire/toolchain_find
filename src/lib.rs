@@ -96,6 +96,15 @@ pub fn find_installed_component(name: &str) -> Option<PathBuf> {
     let mut root = rustup_home()?;
     root.push("toolchains");
 
+    // For Windows, we need to add an exe extension.
+    let mut n = String::from(name);
+    let name = if cfg!(windows) {
+        n.push_str(".exe");
+        n
+    } else {
+        n
+    };
+
     for entry in WalkDir::new(root)
         .max_depth(3)
         .into_iter()
@@ -105,12 +114,16 @@ pub fn find_installed_component(name: &str) -> Option<PathBuf> {
         if parent.ends_with("bin") {
             let bin_name = entry.path().file_name()?;
 
-            if bin_name == name {
+            if bin_name == name.as_str() {
                 // This assumes that we will always have a rustc in this same toolchain location.
                 // I suppose a user could have a very custom build but I am not sure how much we
                 // need to support.
                 let mut rustc_path = PathBuf::from(parent);
-                rustc_path.push("rustc");
+                if cfg!(windows) {
+                    rustc_path.push("rustc.exe");
+                } else {
+                    rustc_path.push("rustc");
+                }
                 components.push(Component::new(
                     rustc_version(&rustc_path),
                     PathBuf::from(&entry.path()),
