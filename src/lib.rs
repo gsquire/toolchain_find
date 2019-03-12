@@ -11,7 +11,7 @@ use walkdir::WalkDir;
 // A `Component` keeps track of the rustc version associated with the component in question.
 #[derive(Debug)]
 struct Component {
-    date_vers: DateVersion,
+    date_vers: Option<DateVersion>,
     path: PathBuf,
 }
 
@@ -40,7 +40,7 @@ impl DateVersion {
 }
 
 impl Component {
-    fn new(date_vers: DateVersion, path: PathBuf) -> Component {
+    fn new(date_vers: Option<DateVersion>, path: PathBuf) -> Component {
         Component { date_vers, path }
     }
 }
@@ -67,7 +67,7 @@ fn parse_rustc_date(rustc_v: &[u8]) -> Option<DateVersion> {
     // rustc 1.32.0 (9fda7c223 2019-01-16)
     lazy_static! {
         static ref PATTERN: Regex = Regex::new(
-            r"rustc (\d+.\d+.\d+(?:-[\.0-9a-z]+)?) \([[:alnum:]]+ (\d{4}-\d{2}-\d{2})\)"
+            r"rustc (\d+.\d+.\d+(?:-[\.0-9a-z]+)?)(?: \([[:alnum:]]+ (\d{4}-\d{2}-\d{2})\))?"
         )
         .unwrap();
     }
@@ -96,6 +96,15 @@ pub fn find_installed_component(name: &str) -> Option<PathBuf> {
     let mut root = rustup_home()?;
     root.push("toolchains");
 
+    // For Windows, we need to add an exe extension.
+    let mut n = String::from(name);
+    let name = if cfg!(windows) {
+        n.push_str(".exe");
+        n
+    } else {
+        n
+    };
+
     for entry in WalkDir::new(root)
         .max_depth(3)
         .into_iter()
@@ -105,14 +114,18 @@ pub fn find_installed_component(name: &str) -> Option<PathBuf> {
         if parent.ends_with("bin") {
             let bin_name = entry.path().file_name()?;
 
-            if bin_name == name {
+            if bin_name == name.as_str() {
                 // This assumes that we will always have a rustc in this same toolchain location.
                 // I suppose a user could have a very custom build but I am not sure how much we
                 // need to support.
                 let mut rustc_path = PathBuf::from(parent);
-                rustc_path.push("rustc");
+                if cfg!(windows) {
+                    rustc_path.push("rustc.exe");
+                } else {
+                    rustc_path.push("rustc");
+                }
                 components.push(Component::new(
-                    rustc_version(&rustc_path)?,
+                    rustc_version(&rustc_path),
                     PathBuf::from(&entry.path()),
                 ));
             }
@@ -142,6 +155,7 @@ mod test {
             "rustc not found".as_bytes(),
             "rustc 1.34.0-nightly (097c04cf4 2019-02-24)".as_bytes(),
             "rustc 1.34.0-beta.1 (744b374ab 2019-02-26)".as_bytes(),
+            "rustc 1.35.0-dev".as_bytes(),
             "rustc 1.32.0 (9fda7c223 2019-01-16)".as_bytes(),
         ];
         let expected = vec![
@@ -154,6 +168,10 @@ mod test {
             Some(DateVersion::new(
                 Some(Version::parse("1.34.0-beta.1").unwrap()),
                 String::from("2019-02-26"),
+            )),
+            Some(DateVersion::new(
+                Some(Version::parse("1.35.0-dev").unwrap()),
+                String::from(""),
             )),
             Some(DateVersion::new(
                 Some(Version::parse("1.32.0").unwrap()),
