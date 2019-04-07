@@ -1,4 +1,16 @@
+sudo: required
 language: rust
+cache: cargo
+addons:
+    apt:
+        packages:
+            - libcurl4-openssl-dev
+            - libelf-dev
+            - libdw-dev
+            - binutils-dev
+            - cmake
+        sources:
+            - kalakris-cmake
 os:
     - linux
     - osx
@@ -10,8 +22,15 @@ install:
     rustup component add rustfmt
 matrix:
     fast_finish: true
+before-script:
+    - export PATH=$HOME/.cargo/bin:$PATH
+    - cargo install cargo-update || echo "cargo-update already installed"
+    - cargo install cargo-travis || echo "cargo-travis already installed"
+    - cargo install-update -a
 script:
     - cargo build
     - cargo test
+after_sucess:
+    - cargo coveralls
 notifications:
     email: false
