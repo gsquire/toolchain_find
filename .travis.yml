@@ -23,14 +23,14 @@ install:
 matrix:
     fast_finish: true
 before_script:
+    if: os = linux
     - export PATH=$HOME/.cargo/bin:$PATH
-    - cargo install cargo-update || echo "cargo-update already installed"
-    - cargo install cargo-travis || echo "cargo-travis already installed"
-    - cargo install-update -a
+    - cargo install -f cargo-travis
 script:
     - cargo build
     - cargo test
 after_success:
+    if: os = linux
     - cargo coveralls
 notifications:
     email: false
