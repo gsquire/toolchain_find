@@ -21,15 +21,17 @@ install:
     rustup component add rustfmt
 matrix:
     fast_finish: true
-before_script:
-    if: os = linux
-    - export PATH=$HOME/.cargo/bin:$PATH
-    - cargo install -f cargo-travis
+before_script: |
+    if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+      export PATH=$HOME/.cargo/bin:$PATH
+      cargo install -f cargo-travis
+    fi
 script:
     - cargo build
     - cargo test
-after_success:
-    if: os = linux
-    - cargo coveralls
+after_success: |
+    if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+      cargo coveralls
+    fi
 notifications:
     email: false
