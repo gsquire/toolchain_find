@@ -144,6 +144,8 @@ pub fn find_installed_component(name: &str) -> Option<PathBuf> {
 
 #[cfg(test)]
 mod test {
+    use std::cmp::Ordering;
+
     use semver::Version;
 
     use super::{parse_rustc_date, DateVersion};
@@ -217,5 +219,13 @@ mod test {
             versions.pop().unwrap(),
             DateVersion::new(Some(v.clone()), String::from("2019-02-24"))
         );
+    }
+
+    #[test]
+    fn test_date_version_compare() {
+        let d1 = DateVersion::new(Some(Version::parse("1.34.0").unwrap()), String::from(""));
+        let d2 = DateVersion::new(Some(Version::parse("1.33.0").unwrap()), String::from(""));
+        let o = d1.cmp(&d2);
+        assert_eq!(o, Ordering::Greater);
     }
 }
