@@ -224,8 +224,16 @@ mod test {
     #[test]
     fn test_date_version_compare() {
         let d1 = DateVersion::new(Some(Version::parse("1.34.0").unwrap()), String::from(""));
-        let d2 = DateVersion::new(Some(Version::parse("1.33.0").unwrap()), String::from(""));
-        let o = d1.cmp(&d2);
-        assert_eq!(o, Ordering::Greater);
+        let d2 = DateVersion::new(
+            Some(Version::parse("1.33.0").unwrap()),
+            String::from("2019-04-20"),
+        );
+        let d3 = DateVersion::new(
+            Some(Version::parse("1.33.0").unwrap()),
+            String::from("2019-04-17"),
+        );
+
+        assert_eq!(d1.cmp(&d2), Ordering::Greater);
+        assert_eq!(d2.cmp(&d3), Ordering::Greater);
     }
 }
