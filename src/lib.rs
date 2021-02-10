@@ -45,21 +45,6 @@ impl Component {
     }
 }
 
-// Return either the user's preferred $RUSTUP_HOME or the default location.
-fn rustup_home() -> Option<PathBuf> {
-    let mut p = PathBuf::new();
-    if let Some(custom_path) = option_env!("RUSTUP_HOME") {
-        p.push(custom_path);
-        return Some(p);
-    }
-
-    let home = dirs::home_dir()?;
-    p.push(home);
-    p.push(".rustup");
-
-    Some(p)
-}
-
 // Given the version string from rustc, attempt to parse the date.
 fn parse_rustc_date(rustc_v: &[u8]) -> Option<DateVersion> {
     // This may not be the most ideal way to get the version.
@@ -93,7 +78,7 @@ fn rustc_version(bin_path: &Path) -> Option<DateVersion> {
 /// the latest version.
 pub fn find_installed_component(name: &str) -> Option<PathBuf> {
     let mut components = Vec::new();
-    let mut root = rustup_home()?;
+    let mut root = home::rustup_home().ok()?;
     root.push("toolchains");
 
     // For Windows, we need to add an exe extension.

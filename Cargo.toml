@@ -10,8 +10,8 @@ description = "A small library to help find installed Rust components"
 readme = "README.md"
 
 [dependencies]
-dirs = "1.0"
+home = "0.5.3"
 lazy_static = "1.2"
 regex = "1.1"
-semver = "0.9"
+semver = "0.11"
 walkdir = "2.2"
