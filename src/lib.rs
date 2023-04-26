@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::str;
 
-use lazy_static::lazy_static;
+use once_cell::sync::OnceCell;
 use regex::Regex;
 use semver::Version;
 use walkdir::WalkDir;
@@ -47,18 +47,20 @@ impl Component {
 
 // Given the version string from rustc, attempt to parse the date.
 fn parse_rustc_date(rustc_v: &[u8]) -> Option<DateVersion> {
+    static PATTERN: OnceCell<Regex> = OnceCell::new();
+
     // This may not be the most ideal way to get the version.
     // It assumes that the output looks like:
     // rustc 1.32.0 (9fda7c223 2019-01-16)
-    lazy_static! {
-        static ref PATTERN: Regex = Regex::new(
-            r"rustc (\d+.\d+.\d+(?:-[\.0-9a-z]+)?)(?: \([[:alnum:]]+ (\d{4}-\d{2}-\d{2})\))?"
+    let pattern = PATTERN.get_or_init(|| {
+        Regex::new(
+            r"rustc (\d+.\d+.\d+(?:-[\.0-9a-z]+)?)(?: \([[:alnum:]]+ (\d{4}-\d{2}-\d{2})\))?",
         )
-        .unwrap();
-    }
+        .unwrap()
+    });
 
     let version = str::from_utf8(rustc_v).unwrap_or_default();
-    let captures = PATTERN.captures(version)?;
+    let captures = pattern.captures(version)?;
     let vers = Version::parse(captures.get(1).map_or("", |v| v.as_str())).ok();
     let date = String::from(captures.get(2).map_or("", |v| v.as_str()));
 
