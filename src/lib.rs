@@ -17,7 +17,7 @@ struct Component {
 
 // A `DateVersion` allows you to sort first by the semantic version and date second if the versions
 // are equal.
-#[derive(Debug, Eq, PartialEq, PartialOrd)]
+#[derive(Debug, Eq, PartialEq)]
 struct DateVersion {
     rustc_vers: Option<Version>,
     date: String,
@@ -30,6 +30,12 @@ impl Ord for DateVersion {
             return self.date.cmp(&other.date);
         }
         vers_cmp
+    }
+}
+
+impl PartialOrd for DateVersion {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
@@ -69,10 +75,11 @@ fn parse_rustc_date(rustc_v: &[u8]) -> Option<DateVersion> {
 
 // Try and parse the version from the Rust compiler.
 fn rustc_version(bin_path: &Path) -> Option<DateVersion> {
-    match Command::new(bin_path).arg("-V").output() {
-        Ok(o) => parse_rustc_date(&o.stdout),
-        Err(_) => None,
-    }
+    Command::new(bin_path)
+        .arg("-V")
+        .output()
+        .ok()
+        .and_then(|o| parse_rustc_date(&o.stdout))
 }
 
 /// Given a Rust component name, search through all of the available toolchains
@@ -122,11 +129,7 @@ pub fn find_installed_component(name: &str) -> Option<PathBuf> {
     // Sort by the rustc version leaving the maximal one at the end.
     components.sort_by(|a, b| a.date_vers.cmp(&b.date_vers));
 
-    if let Some(c) = components.pop() {
-        return Some(c.path);
-    }
-
-    None
+    components.pop().map(|c| c.path)
 }
 
 #[cfg(test)]
