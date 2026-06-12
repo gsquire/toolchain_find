@@ -2,8 +2,10 @@
 
 [![Coverage Status](https://coveralls.io/repos/github/gsquire/toolchain_find/badge.svg?branch=master)](https://coveralls.io/github/gsquire/toolchain_find?branch=master)
 
-This is a small crate that exposes a single function to find a component installed across all
-toolchains managed by rustup.
+This is a small crate that exposes two functions:
+
+- `find_installed_component` to find a component installed across all toolchains managed by rustup.
+- `find_nightly_installed_component` to find a component installed across nightly toolchains managed by rustup.
 
 ## Documentation
 [Link](https://docs.rs/toolchain_find)

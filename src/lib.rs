@@ -8,6 +8,12 @@ use regex::Regex;
 use semver::Version;
 use walkdir::WalkDir;
 
+#[derive(Clone, Copy)]
+enum Toolchains {
+    All,
+    Nightly,
+}
+
 // A `Component` keeps track of the rustc version associated with the component in question.
 #[derive(Debug)]
 struct Component {
@@ -86,6 +92,18 @@ fn rustc_version(bin_path: &Path) -> Option<DateVersion> {
 /// on the system to see if it is installed. It will return the path of the component that has
 /// the latest version.
 pub fn find_installed_component(name: &str) -> Option<PathBuf> {
+    find_installed(name, Toolchains::All)
+}
+
+/// Given a Rust component name, search through all of the available nightly toolchains
+/// on the system to see if it is installed. It will return the path of the component that has
+/// the latest version.
+pub fn find_nightly_installed_component(name: &str) -> Option<PathBuf> {
+    find_installed(name, Toolchains::Nightly)
+}
+
+/// Find an installed component name, optionally filtering to nightly toolchains.
+fn find_installed(name: &str, toolchains: Toolchains) -> Option<PathBuf> {
     let mut components = Vec::new();
     let mut root = home::rustup_home().ok()?;
     root.push("toolchains");
@@ -102,6 +120,16 @@ pub fn find_installed_component(name: &str) -> Option<PathBuf> {
     for entry in WalkDir::new(root)
         .max_depth(3)
         .into_iter()
+        .filter_entry(|e| {
+            e.depth() != 1
+                || match toolchains {
+                    Toolchains::All => true,
+                    Toolchains::Nightly => e
+                        .path()
+                        .file_name()
+                        .is_some_and(|f| f.to_string_lossy().starts_with("nightly")),
+                }
+        })
         .filter_map(|e| e.ok())
     {
         let parent = entry.path().parent()?;
