@@ -2,7 +2,7 @@
 name = "toolchain_find"
 version = "0.5.0"
 authors = ["Garrett Squire <github@garrettsquire.com>"]
-edition = "2021"
+edition = "2024"
 license = "MIT"
 repository = "https://github.com/gsquire/toolchain_find"
 documentation = "https://docs.rs/toolchain_find"
