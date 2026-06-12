@@ -2,13 +2,13 @@ use std::cmp::Ordering;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::str;
+use std::sync::OnceLock;
 
-use once_cell::sync::OnceCell;
 use regex::Regex;
 use semver::Version;
 use walkdir::WalkDir;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
 enum Toolchains {
     All,
     Nightly,
@@ -59,7 +59,7 @@ impl Component {
 
 // Given the version string from rustc, attempt to parse the date.
 fn parse_rustc_date(rustc_v: &[u8]) -> Option<DateVersion> {
-    static PATTERN: OnceCell<Regex> = OnceCell::new();
+    static PATTERN: OnceLock<Regex> = OnceLock::new();
 
     // This may not be the most ideal way to get the version.
     // It assumes that the output looks like:
