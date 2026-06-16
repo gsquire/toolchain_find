@@ -119,6 +119,7 @@ fn find_installed(name: &str, toolchains: Toolchains) -> Option<PathBuf> {
 
     for entry in WalkDir::new(root)
         .max_depth(3)
+        .follow_links(true)
         .into_iter()
         .filter_entry(|e| {
             e.depth() != 1
