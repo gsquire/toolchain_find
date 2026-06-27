@@ -14,3 +14,7 @@ home = "0.5"
 regex = "1.12"
 semver = "1"
 walkdir = "2.5"
+
+[dev-dependencies]
+googletest = "0.14"
+test_helpers = { path = "test_helpers" }
